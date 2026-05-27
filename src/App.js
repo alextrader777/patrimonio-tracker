@@ -96,69 +96,102 @@ const G = {
 };
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
-function Modal({ mes, data, onSave, onClose }) {
-  const [activos, setAct] = useState(data.a?.length>0?data.a.map(a=>({...a})):[{n:"",c:"",u:""}]);
-  const [ing, setIng] = useState(data.ing||"");
-  const [gas, setGas] = useState(data.gas||"");
-  const upd=(i,f,v)=>{const a=[...activos];a[i]={...a[i],[f]:v};setAct(a);};
+function Modal({ mes, data, onSave, onClose, dolar }) {
+  const [activos,    setAct]    = useState(data.a?.length>0?data.a.map(a=>({...a})):[{n:"",c:"",u:""}]);
+  const [ing,        setIng]    = useState(data.ing||"");
+  const [gas,        setGas]    = useState(data.gas||"");
+  const [showFlujo,  setFlujo]  = useState(false);
+
+  const upd = (i,f,v) => {
+    const a=[...activos];
+    // Auto-convert USD → COP when USD field changes
+    if(f==="u" && dolar && num(v)>0){
+      a[i]={...a[i], u:v, c:Math.round(num(v)*dolar)};
+    } else {
+      a[i]={...a[i],[f]:v};
+    }
+    setAct(a);
+  };
+
   const total=activos.reduce((s,a)=>s+num(a.c),0);
   const ahorro=num(ing)-num(gas);
   const tasa=num(ing)>0?(ahorro/num(ing)*100).toFixed(0):null;
+
   const save=()=>{
     const mapped=activos.filter(a=>String(a.n).trim()).map(a=>({n:String(a.n).trim(),c:num(a.c),u:num(a.u)}));
     onSave(mes,{t:total,a:mapped,ing:num(ing),gas:num(gas)});
     onClose();
   };
+
   const inp={
     background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.12)",
     borderRadius:10, padding:"9px 12px", color:"#f1f5f9", fontSize:"0.85rem",
     width:"100%", outline:"none", fontFamily:"inherit"
   };
+
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
       <div style={{background:"rgba(15,18,35,0.92)",backdropFilter:"blur(32px)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:24,padding:28,width:"100%",maxWidth:520,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,0.5)"}}>
+
+        {/* Header */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:22}}>
           <h2 style={{margin:0,background:"linear-gradient(135deg,#e2e8f0,#94a3b8)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",fontSize:"1.4rem",fontWeight:600,letterSpacing:"-0.02em"}}>{mes}</h2>
           <button onClick={onClose} style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:10,color:"#94a3b8",fontSize:"1.1rem",cursor:"pointer",width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
         </div>
 
-        <div style={{background:"rgba(255,255,255,0.04)",borderRadius:14,padding:"14px 16px",marginBottom:18,border:"1px solid rgba(255,255,255,0.07)"}}>
-          <p style={{color:"rgba(148,163,184,0.7)",fontSize:"0.6rem",letterSpacing:"0.14em",textTransform:"uppercase",margin:"0 0 12px"}}>Flujo del mes</p>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-            <div><label style={{color:"#64748b",fontSize:"0.72rem",display:"block",marginBottom:5}}>Ingresos</label><input value={ing} onChange={e=>setIng(e.target.value)} placeholder="9000000" style={inp} type="number"/></div>
-            <div><label style={{color:"#64748b",fontSize:"0.72rem",display:"block",marginBottom:5}}>Gastos</label><input value={gas} onChange={e=>setGas(e.target.value)} placeholder="5000000" style={inp} type="number"/></div>
-          </div>
-          {tasa!==null&&(
-            <div style={{marginTop:10,display:"flex",gap:16}}>
-              <span style={{color:"#64748b",fontSize:"0.75rem"}}>Ahorro: <span style={{color:ahorro>=0?"#34d399":"#f87171",fontWeight:600}}>{fmt(ahorro)}</span></span>
-              <span style={{color:"#64748b",fontSize:"0.75rem"}}>Tasa: <span style={{color:Number(tasa)>=30?"#34d399":Number(tasa)>=15?"#f59e0b":"#f87171",fontWeight:600}}>{tasa}%</span></span>
-            </div>
-          )}
-        </div>
-
+        {/* Activos */}
         <div style={{marginBottom:16}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
             <p style={{color:"rgba(148,163,184,0.7)",fontSize:"0.6rem",letterSpacing:"0.14em",textTransform:"uppercase",margin:0}}>Activos</p>
             <button onClick={()=>setAct([...activos,{n:"",c:"",u:""}])} style={{...inp,width:"auto",padding:"4px 12px",color:"#818cf8",cursor:"pointer",fontSize:"0.75rem"}}>+ agregar</button>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"14px 2fr 2fr 1.4fr 14px",gap:"0 8px",marginBottom:6}}>
-            {["","activo","COP","USD",""].map((h,i)=><span key={i} style={{color:"rgba(100,116,139,0.6)",fontSize:"0.58rem",letterSpacing:"0.12em",textTransform:"uppercase"}}>{h}</span>)}
+            {["","activo","COP","USD",""].map((h,i)=>(
+              <span key={i} style={{color:"rgba(100,116,139,0.6)",fontSize:"0.58rem",letterSpacing:"0.12em",textTransform:"uppercase"}}>{h}</span>
+            ))}
           </div>
           {activos.map((a,i)=>(
             <div key={i} style={{display:"grid",gridTemplateColumns:"14px 2fr 2fr 1.4fr 14px",gap:"0 8px",marginBottom:7,alignItems:"center"}}>
               <div style={{width:6,height:6,borderRadius:"50%",background:gc(a.n),boxShadow:`0 0 8px ${gc(a.n)}60`}}/>
               <input value={a.n} onChange={e=>upd(i,"n",e.target.value)} placeholder="BTC" style={inp}/>
               <input value={a.c} onChange={e=>upd(i,"c",e.target.value)} placeholder="5600000" style={inp} type="number"/>
-              <input value={a.u} onChange={e=>upd(i,"u",e.target.value)} placeholder="0" style={inp} type="number"/>
+              <input value={a.u} onChange={e=>upd(i,"u",e.target.value)} placeholder="0" style={{...inp, borderColor: num(a.u)>0?"rgba(96,165,250,0.4)":"rgba(255,255,255,0.12)"}} type="number"
+                title="Al ingresar USD se calcula COP automáticamente"/>
               <button onClick={()=>setAct(activos.filter((_,idx)=>idx!==i))} style={{background:"none",border:"none",color:"#374151",cursor:"pointer",fontSize:"0.9rem",padding:0}}>×</button>
             </div>
           ))}
+          <p style={{color:"rgba(100,116,139,0.35)",fontSize:"0.62rem",margin:"6px 0 0",fontFamily:"'DM Mono',monospace"}}>
+            💡 Al ingresar USD se calcula COP automáticamente · 1 USD = ${dolar?.toLocaleString("es-CO")}
+          </p>
         </div>
 
-        <div style={{background:"rgba(52,211,153,0.08)",border:"1px solid rgba(52,211,153,0.2)",borderRadius:12,padding:"12px 16px",marginBottom:18,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        {/* Total */}
+        <div style={{background:"rgba(52,211,153,0.08)",border:"1px solid rgba(52,211,153,0.2)",borderRadius:12,padding:"12px 16px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <span style={{color:"rgba(148,163,184,0.7)",fontSize:"0.72rem",letterSpacing:"0.08em",textTransform:"uppercase"}}>Total calculado</span>
           <span style={{color:"#34d399",fontWeight:600,fontSize:"1.05rem"}}>{fmt(total)}</span>
         </div>
+
+        {/* Flujo colapsable */}
+        <button onClick={()=>setFlujo(!showFlujo)} style={{width:"100%",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"9px 14px",color:"rgba(100,116,139,0.5)",fontSize:"0.72rem",cursor:"pointer",textAlign:"left",marginBottom:showFlujo?0:18,display:"flex",justifyContent:"space-between",alignItems:"center",letterSpacing:"0.08em",textTransform:"uppercase"}}>
+          <span>+ ingresos / gastos (opcional)</span>
+          <span style={{fontSize:"0.8rem"}}>{showFlujo?"▲":"▼"}</span>
+        </button>
+
+        {showFlujo&&(
+          <div style={{background:"rgba(255,255,255,0.03)",borderRadius:"0 0 12px 12px",padding:"14px 16px",marginBottom:18,border:"1px solid rgba(255,255,255,0.06)",borderTop:"none"}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              <div><label style={{color:"#64748b",fontSize:"0.72rem",display:"block",marginBottom:5}}>Ingresos</label><input value={ing} onChange={e=>setIng(e.target.value)} placeholder="9000000" style={inp} type="number"/></div>
+              <div><label style={{color:"#64748b",fontSize:"0.72rem",display:"block",marginBottom:5}}>Gastos</label><input value={gas} onChange={e=>setGas(e.target.value)} placeholder="5000000" style={inp} type="number"/></div>
+            </div>
+            {tasa!==null&&(
+              <div style={{marginTop:10,display:"flex",gap:16}}>
+                <span style={{color:"#64748b",fontSize:"0.75rem"}}>Ahorro: <span style={{color:ahorro>=0?"#34d399":"#f87171",fontWeight:600}}>{fmt(ahorro)}</span></span>
+                <span style={{color:"#64748b",fontSize:"0.75rem"}}>Tasa: <span style={{color:Number(tasa)>=30?"#34d399":Number(tasa)>=15?"#f59e0b":"#f87171",fontWeight:600}}>{tasa}%</span></span>
+              </div>
+            )}
+          </div>
+        )}
+
         <button onClick={save} style={{width:"100%",background:"linear-gradient(135deg,rgba(99,102,241,0.8),rgba(139,92,246,0.8))",border:"1px solid rgba(139,92,246,0.4)",borderRadius:12,padding:13,color:"white",fontSize:"0.95rem",fontWeight:600,cursor:"pointer",backdropFilter:"blur(8px)",letterSpacing:"0.01em"}}>
           Guardar {mes}
         </button>
@@ -740,7 +773,7 @@ export default function App() {
         </p>
       </div>
 
-      {editing&&<Modal mes={editing} data={yd.months[editing]} onSave={saveMonth} onClose={()=>setEditing(null)}/>}
+      {editing&&<Modal mes={editing} data={yd.months[editing]} onSave={saveMonth} onClose={()=>setEditing(null)} dolar={dolar}/>}
       {settings&&<SettingsModal yd={yd} year={yr} onSave={saveSettings} onClose={()=>setSettings(false)}/>}
     </div>
   );
