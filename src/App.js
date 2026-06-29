@@ -278,11 +278,12 @@ export default function App() {
             try { const s = localStorage.getItem(KEY); if (s) setApp(JSON.parse(s)); } catch (_) { }
           }
         } catch (_) { }
-        setSyncing(false);
-     } else {
+      setSyncing(false);
+      setLoaded(true);
+    } else {
       try { const s = localStorage.getItem(KEY); if (s) setApp(JSON.parse(s)); } catch (_) { }
+      setLoaded(true);
     }
-    setLoaded(true);
     });
     return () => unsub();
   }, []);
