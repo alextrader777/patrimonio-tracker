@@ -279,10 +279,10 @@ export default function App() {
           }
         } catch (_) { }
         setSyncing(false);
-      } else {
-        try { const s = localStorage.getItem(KEY); if (s) setApp(JSON.parse(s)); } catch (_) { }
-      }
-      setLoaded(true);
+     } else {
+      try { const s = localStorage.getItem(KEY); if (s) setApp(JSON.parse(s)); } catch (_) { }
+    }
+    setLoaded(true);
     });
     return () => unsub();
   }, []);
@@ -291,7 +291,7 @@ export default function App() {
   useEffect(() => {
     if (!loaded) return;
     if (user) {
-      saveData(user.uid, app).catch(_ => { });
+      saveData(user.uid, app).then(() => console.log("✅ Guardado en Firebase")).catch(e => console.error("❌ Error Firebase:", e));
     } else {
       try { localStorage.setItem(KEY, JSON.stringify(app)); } catch (_) { }
     }
